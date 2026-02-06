@@ -15,7 +15,6 @@ class WorkoutManager: NSObject, ObservableObject {
     
     private let audioEngine = AVAudioEngine()
     
-    // 権限リクエスト
     func requestAuthorization() {
         let typesToShare: Set = [HKQuantityType.workoutType()]
         let typesToRead: Set = [
@@ -25,7 +24,6 @@ class WorkoutManager: NSObject, ObservableObject {
         
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, _ in
             if success {
-                // watchOS 10.0+ の最新のリクエスト方式
                 AVAudioApplication.requestRecordPermission { granted in
                     print("Microphone Permission: \(granted)")
                 }
@@ -33,7 +31,6 @@ class WorkoutManager: NSObject, ObservableObject {
         }
     }
     
-    // ゾンビモード開始（バックグラウンド維持 + 音声リレー）
     func startZombieMode() {
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .other
@@ -51,11 +48,9 @@ class WorkoutManager: NSObject, ObservableObject {
             session?.startActivity(with: startDate)
             builder?.beginCollection(withStart: startDate) { _, _ in }
             
-            // iPhoneへ音声をリレー開始
             try startStreamingAudio()
             
             DispatchQueue.main.async { self.isRunning = true }
-            print("👁️ Full Sensory Mode Started")
         } catch {
             print("Failed: \(error.localizedDescription)")
         }
@@ -70,8 +65,8 @@ class WorkoutManager: NSObject, ObservableObject {
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            // 生音声データをiPhoneへ送信
             let audioData = self.audioBufferToData(buffer: buffer)
+            // ここで呼ぶ sendData は下の WatchConnector で定義します
             WatchConnector.shared.sendData(["audio_chunk": audioData])
         }
         
@@ -83,7 +78,7 @@ class WorkoutManager: NSObject, ObservableObject {
         let frameLength = Int(buffer.frameLength)
         guard let channelData = buffer.floatChannelData else { return Data() }
         let channels = UnsafeBufferPointer(start: channelData, count: Int(buffer.format.channelCount))
-        // バッファをData型に変換（iPhone側で戻せる形式）
+        // ! を使わず安全にコピー
         let data = Data(bytes: channels[0], count: frameLength * MemoryLayout<Float>.size)
         return data
     }
@@ -93,7 +88,6 @@ class WorkoutManager: NSObject, ObservableObject {
         builder?.endCollection(withEnd: Date()) { _, _ in }
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
-        
         DispatchQueue.main.async { self.isRunning = false }
     }
 }
@@ -103,6 +97,7 @@ extension WorkoutManager: HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate
         for type in collectedTypes {
             guard let quantityType = type as? HKQuantityType else { continue }
             
+            // [修正済] Type 'String' has no member 'heartRate' を防ぐ正しい比較
             if quantityType == HKObjectType.quantityType(forIdentifier: .heartRate) {
                 let statistics = workoutBuilder.statistics(for: quantityType)
                 let value = statistics?.mostRecentQuantity()?.doubleValue(for: HKUnit(from: "count/min")) ?? 0
