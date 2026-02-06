@@ -4,7 +4,12 @@
 <dict>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>location</string>
 		<string>workout-processing</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>マイクを使用して音声データを記録しています。</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>音声認識を使用してコマンドを処理しています。</string>
 </dict>
 </plist>

@@ -1,37 +1,39 @@
 import Foundation
-import Combine  // ← これを追加しました！これでエラーが消えます
+import Combine
 import HealthKit
+import AVFoundation
 
 class WorkoutManager: NSObject, ObservableObject {
+    static let shared = WorkoutManager()
+    
     let healthStore = HKHealthStore()
     var session: HKWorkoutSession?
     var builder: HKLiveWorkoutBuilder?
     
-    // UIの表示切り替え用
     @Published var isRunning = false
+    @Published var heartRate: Double = 0
     
-    static let shared = WorkoutManager()
+    private let audioEngine = AVAudioEngine()
     
     // 権限リクエスト
     func requestAuthorization() {
-        let typesToShare: Set = [
-            HKQuantityType.workoutType()
-        ]
-        
-        // 心拍数などを読み取る権限
+        let typesToShare: Set = [HKQuantityType.workoutType()]
         let typesToRead: Set = [
             HKQuantityType.quantityType(forIdentifier: .heartRate)!,
             HKQuantityType.workoutType()
         ]
         
-        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
-            if let error = error {
-                print("Auth Error: \(error.localizedDescription)")
+        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, _ in
+            if success {
+                // watchOS 10.0+ の最新のリクエスト方式
+                AVAudioApplication.requestRecordPermission { granted in
+                    print("Microphone Permission: \(granted)")
+                }
             }
         }
     }
     
-    // ゾンビ化開始（ワークアウトセッション開始）
+    // ゾンビモード開始（バックグラウンド維持 + 音声リレー）
     func startZombieMode() {
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .other
@@ -43,64 +45,77 @@ class WorkoutManager: NSObject, ObservableObject {
             
             session?.delegate = self
             builder?.delegate = self
-            
             builder?.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
             
             let startDate = Date()
             session?.startActivity(with: startDate)
-            builder?.beginCollection(withStart: startDate) { (success, error) in
-                if success {
-                    print("💪 Builder collection started")
-                }
-            }
+            builder?.beginCollection(withStart: startDate) { _, _ in }
             
-            DispatchQueue.main.async {
-                self.isRunning = true
-            }
-            print("👁️ Zombie Mode (Session) Started")
+            // iPhoneへ音声をリレー開始
+            try startStreamingAudio()
             
+            DispatchQueue.main.async { self.isRunning = true }
+            print("👁️ Full Sensory Mode Started")
         } catch {
-            print("Failed to start session: \(error.localizedDescription)")
+            print("Failed: \(error.localizedDescription)")
         }
     }
     
-    // 停止処理
+    private func startStreamingAudio() throws {
+        let audioSession = AVAudioSession.sharedInstance()
+        try audioSession.setCategory(.playAndRecord, mode: .measurement, options: .duckOthers)
+        try audioSession.setActive(true)
+        
+        let inputNode = audioEngine.inputNode
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+            // 生音声データをiPhoneへ送信
+            let audioData = self.audioBufferToData(buffer: buffer)
+            WatchConnector.shared.sendData(["audio_chunk": audioData])
+        }
+        
+        audioEngine.prepare()
+        try audioEngine.start()
+    }
+    
+    private func audioBufferToData(buffer: AVAudioPCMBuffer) -> Data {
+        let frameLength = Int(buffer.frameLength)
+        guard let channelData = buffer.floatChannelData else { return Data() }
+        let channels = UnsafeBufferPointer(start: channelData, count: Int(buffer.format.channelCount))
+        // バッファをData型に変換（iPhone側で戻せる形式）
+        let data = Data(bytes: channels[0], count: frameLength * MemoryLayout<Float>.size)
+        return data
+    }
+    
     func stopZombieMode() {
         session?.end()
-        builder?.endCollection(withEnd: Date()) { (success, error) in
-            self.builder?.finishWorkout { (workout, error) in
-                print("Workout finished")
-            }
-        }
+        builder?.endCollection(withEnd: Date()) { _, _ in }
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
         
-        session = nil
-        builder = nil
-        
-        DispatchQueue.main.async {
-            self.isRunning = false
-        }
-        print("Zombie Mode Stopped")
+        DispatchQueue.main.async { self.isRunning = false }
     }
 }
 
-// 必須デリゲート（OSからの通知を受け取る）
 extension WorkoutManager: HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
-    func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
-        if toState == .running {
-            print("Session status: Running")
-        } else if toState == .ended {
-            print("Session status: Ended")
+    func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
+        for type in collectedTypes {
+            guard let quantityType = type as? HKQuantityType else { continue }
+            
+            if quantityType == HKObjectType.quantityType(forIdentifier: .heartRate) {
+                let statistics = workoutBuilder.statistics(for: quantityType)
+                let value = statistics?.mostRecentQuantity()?.doubleValue(for: HKUnit(from: "count/min")) ?? 0
+                
+                DispatchQueue.main.async {
+                    self.heartRate = value
+                    WatchConnector.shared.sendData(["heartRate": value])
+                }
+            }
         }
     }
     
-    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        print("Session error: \(error.localizedDescription)")
-    }
-    
-    func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
-        // データが来るたびに呼ばれる
-    }
-    
-    func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
-    }
+    func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {}
+    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {}
+    func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
 }

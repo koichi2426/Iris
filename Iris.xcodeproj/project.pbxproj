@@ -347,6 +347,8 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "AIの感覚情報として使用します";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "バックグラウンド計測のため使用します";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "移動データを記録します";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "エージェントがあなたの声を聞き取るために使用します";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "あなたの発言をリアルタイムでテキスト化するために使用します";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.koichi.Iris;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -384,6 +386,8 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "AIの感覚情報として使用します";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "バックグラウンド計測のため使用します";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "移動データを記録します";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "エージェントがあなたの声を聞き取るために使用します";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "あなたの発言をリアルタイムでテキスト化するために使用します";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.koichi.Iris;
 				LD_RUNPATH_SEARCH_PATHS = (

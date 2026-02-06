@@ -1,32 +1,27 @@
 import Foundation
-import Combine  // ← これを追加！
 import WatchConnectivity
 
-class WatchConnector: NSObject, ObservableObject, WCSessionDelegate {
+class WatchConnector: NSObject, WCSessionDelegate {
     static let shared = WatchConnector()
-    var session: WCSession
     
-    init(session: WCSession = .default) {
-        self.session = session
+    private override init() {
         super.init()
-        self.session.delegate = self
-        self.session.activate()
-    }
-    
-    func sendTestMessage() {
-        if session.isReachable {
-            let message = ["text": "Hello iPhone! This is Watch via Synapse."]
-            session.sendMessage(message, replyHandler: nil) { error in
-                print("Error sending message: \(error.localizedDescription)")
-            }
-            print("📤 Sent message to iPhone")
-        } else {
-            print("⚠️ iPhone is not reachable")
+        if WCSession.isSupported() {
+            WCSession.default.delegate = self
+            WCSession.default.activate()
         }
     }
     
-    // WCSessionDelegate 必須メソッド
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        if let error = error { print("Session activation failed: \(error.localizedDescription)") }
+    func sendData(_ data: [String: Any]) {
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(data, replyHandler: nil) { error in
+                print("Send Error: \(error.localizedDescription)")
+            }
+        } else {
+            // iPhoneがスリープ中の場合はバックグラウンドで同期
+            try? WCSession.default.updateApplicationContext(data)
+        }
     }
+    
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
 }
