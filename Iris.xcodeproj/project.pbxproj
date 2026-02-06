@@ -39,16 +39,6 @@
 		8A4D0BCC2F36331000A79FD3 /* Iris Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Iris Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		8A4D0BE22F36341400A79FD3 /* Exceptions for "Iris Watch App" folder in "Iris Watch App" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"Iris-Watch-App-Info.plist",
-			);
-			target = 8A4D0BCB2F36331000A79FD3 /* Iris Watch App */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8A4D0BC12F36330F00A79FD3 /* Iris */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -57,9 +47,6 @@
 		};
 		8A4D0BD02F36331000A79FD3 /* Iris Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				8A4D0BE22F36341400A79FD3 /* Exceptions for "Iris Watch App" folder in "Iris Watch App" target */,
-			);
 			path = "Iris Watch App";
 			sourceTree = "<group>";
 		};
@@ -357,6 +344,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Iris-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Iris;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "AIの感覚情報として使用します";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "バックグラウンド計測のため使用します";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "移動データを記録します";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.koichi.Iris;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -391,6 +381,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Iris-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Iris;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "AIの感覚情報として使用します";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "バックグラウンド計測のため使用します";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "移動データを記録します";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.koichi.Iris;
 				LD_RUNPATH_SEARCH_PATHS = (
